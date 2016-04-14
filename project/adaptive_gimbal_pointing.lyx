@@ -1,0 +1,1153 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\topmargin 2cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Adaptive Control for Image-Based Pointing
+\end_layout
+
+\begin_layout Author
+Jae Lee
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+Image-Based gimbal control is an ongoing research project in MAGICC Lab.
+ For target tracking application, this is an important issue because gimbal
+ has to be controlled elaborately in order to not lose the tracks from the
+ field of view of the camera.
+ Reference 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+
+\end_inset
+
+ showed that a single target is trackable if the pixel location of the target
+ is known.
+ This approach may not be robust because motion of the platform is not accounted
+ for.
+ Z.
+ Hur and M.
+ Rez 
+\emph on
+examined
+\emph default
+ the gimbal pointing problem with a control scheme that compensates for
+ the motion of the platform 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-2"
+
+\end_inset
+
+.
+ In order to use their approach, calculating the depth into optical axis
+ of the camera term which is expressed in 'z' is essential to account for
+ the influence of mutual translational motion of the camera and the target
+ on the ground (see Figure 1).
+ The 'z' term can be approximated as the distance from the camera to the
+ ground target and this can be calculated using the geolocation method described
+ in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+
+\end_inset
+
+.
+ However, this can be an inaccurate parameter to the controller and in this
+ paper adaptive control scheme is studied to adapt the controller for uncertain
+ 'z' term.
+ 
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/figure1.png
+	scale 25
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Coordinates of the object on the ground expressed in the camera frame
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Background
+\end_layout
+
+\begin_layout Standard
+The relationship between the target's velocity in the image plane and the
+ translational and rotational motion of the camera can be expressed as 
+\begin_inset Formula 
+\begin{equation}
+\left[\begin{array}{c}
+\dot{u}\\
+\dot{w}
+\end{array}\right]=\left[\begin{array}{cccccc}
+-\frac{\lambda}{z} & 0 & \frac{u}{z} & \frac{uw}{\lambda} & -\frac{\lambda^{2}+u^{2}}{\lambda} & w\\
+0 & -\frac{\lambda}{z} & \frac{w}{z} & \frac{\lambda^{2}+w^{2}}{\lambda} & -\frac{uw}{\lambda} & -u
+\end{array}\right]\left[\begin{array}{c}
+v_{Cx}\\
+v_{Cy}\\
+v_{Cz}\\
+\omega_{Cx}\\
+\omega_{Cy}\\
+\omega_{Cz}
+\end{array}\right]
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $u,w,\dot{u},\dot{w}$
+\end_inset
+
+ are image feature location and velocity in the image plane in meters, 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ is the focal length, and 
+\begin_inset Formula $v_{C},\omega_{C}$
+\end_inset
+
+ are the translational and rotational motion of the camera.
+ By examning this relationship, it is clear that 'z' term is used only to
+ calculate the influence of the translational motion of the camera.
+ Thus, it is essential to move the camera to prove that the adaptive control
+ presented in this paper is working.
+ For simplicity later in the paper, the expression above can be altered
+ as 
+\begin_inset Formula 
+\begin{equation}
+\dot{s}=L_{v}(u,w,z)v_{C}+L_{w}(u,w)\omega_{C}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For a single target tracking case, the purpose of gimbal pointing is to
+ maneuver the gimbal so that the target is pushed to the center of the image
+ plane.
+ Thus, the reference model can be looking like 
+\begin_inset Formula 
+\begin{equation}
+\dot{s}^{ref}(t)=As^{ref}(t)=-\alpha Is^{ref}(t)
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $s(t)=\left[u,w\right]^{T}$
+\end_inset
+
+ and 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ is some real positive.
+ In this expression, if A is chosen to have negative eigenvalues, exponential
+ stability is guaranteed.
+ 
+\end_layout
+
+\begin_layout Section
+Derivation of The Adaptive Controller
+\end_layout
+
+\begin_layout Standard
+From equation (2), 
+\begin_inset Formula $\omega_{C}$
+\end_inset
+
+ is the control input because it is a common situation to track the target
+ with gimbal movement rather than platform movement.
+ Thus, the equation (2) can be expressed as the following to separate the
+ control input from other terms.
+\begin_inset Formula 
+\begin{align}
+\dot{s} & =\frac{1}{z}\left[\begin{array}{c}
+-\lambda v_{Cx}+uv_{Cz}\\
+-\lambda v_{Cy}+wv_{Cz}
+\end{array}\right]+\left[\begin{array}{ccc}
+\frac{uw}{\lambda} & -\frac{\lambda^{2}+u^{2}}{\lambda} & w\\
+\frac{\lambda^{2}+w^{2}}{\lambda} & -\frac{uw}{\lambda} & -u
+\end{array}\right]\left[\begin{array}{c}
+\omega_{Cx}\\
+\omega_{Cy}\\
+\omega_{Cz}
+\end{array}\right]\nonumber \\
+ & =\theta\varphi+L_{w}U
+\end{align}
+
+\end_inset
+
+where U is the control input and 
+\begin_inset Formula $\theta$
+\end_inset
+
+ is the uncertain parameter.
+ The expression (4) now is in more convenient form to develop an adaptive
+ controller than the expression (1).
+ In the expression (4), if it is supposed that 
+\begin_inset Formula $\theta$
+\end_inset
+
+ is known, the ideal control input would look like 
+\begin_inset Formula 
+\begin{equation}
+U=L_{w}^{\#}(-\theta\varphi-K_{s}s)
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $L_{w}^{\#}$
+\end_inset
+
+ is the right pseudoinverse of 
+\begin_inset Formula $L_{w}$
+\end_inset
+
+ and the subsequent dynamics would become like
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\dot{s}=-K_{s}s
+\]
+
+\end_inset
+
+which in this case if 
+\begin_inset Formula $K_{s}$
+\end_inset
+
+ is set to be the same as 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ in (3), the close-loop response will act exactly same as the reference
+ model.
+ However, since 
+\begin_inset Formula $\theta$
+\end_inset
+
+ is unknown and needs to be adapted, more realistic control input would
+ look like
+\begin_inset Formula 
+\begin{equation}
+U=L_{w}^{\#}(-\hat{\theta}\varphi-K_{s}s)
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\hat{\theta}$
+\end_inset
+
+ is the estimate of 
+\begin_inset Formula $\theta$
+\end_inset
+
+.
+ By plugging (6) into (4), the resulting dynamics would be
+\begin_inset Formula 
+\begin{align*}
+\dot{s} & =\theta\varphi-\hat{\theta}\varphi-K_{s}s\\
+ & =-\Delta\theta\varphi-K_{s}s,\;(\Delta\theta=\hat{\theta}-\theta)\\
+ & =-\Delta\theta\varphi+As
+\end{align*}
+
+\end_inset
+
+Let the error defined as 
+\begin_inset Formula 
+\begin{eqnarray*}
+e & = & s-s^{ref}\\
+\dot{e} & = & \dot{s}-\dot{s}^{ref}\\
+ & = & -\Delta\theta\varphi+As-As^{ref}\\
+ & = & -\Delta\theta\varphi+Ae
+\end{eqnarray*}
+
+\end_inset
+
+Using the variables of interest, a Lyapunov function candidate can be constructe
+d as
+\begin_inset Formula 
+\begin{eqnarray*}
+V & = & \frac{1}{2}e^{T}e+\frac{1}{2\gamma_{\theta}}\Delta\theta^{2}\\
+\dot{V} & = & e^{T}\dot{e}+\frac{1}{\gamma_{\theta}}\Delta\theta\Delta\dot{\theta}\\
+ & = & e^{T}(-\Delta\theta\varphi+Ae)+\frac{1}{\gamma_{\theta}}\Delta\theta\dot{\hat{\theta}},\;(\dot{\theta}=0)\\
+ & = & e^{T}Ae+\Delta\theta\left(\frac{\dot{\hat{\theta}}}{\gamma_{\theta}}-e^{T}\varphi\right)
+\end{eqnarray*}
+
+\end_inset
+
+Since 
+\begin_inset Formula $\dot{\hat{\theta}}$
+\end_inset
+
+ is a design parameter, its value can be picked as
+\begin_inset Formula 
+\begin{eqnarray*}
+\dot{\hat{\theta}} & = & \gamma_{\theta}e^{T}\varphi
+\end{eqnarray*}
+
+\end_inset
+
+Then, 
+\begin_inset Formula 
+\begin{equation}
+\dot{V}=e^{T}Ae\leq0
+\end{equation}
+
+\end_inset
+
+So far, it is still not guaranteed that error would go to zero.
+ By Barbalat's Lemma, asymptotic statility can be proved.
+\begin_inset Formula 
+\begin{eqnarray}
+\ddot{V} & = & \dot{e}^{T}Ae+e^{T}A\dot{e}\nonumber \\
+ & = & 2e^{T}A\dot{e}\nonumber \\
+ & = & 2e^{T}A(-\Delta\theta\varphi+Ae)
+\end{eqnarray}
+
+\end_inset
+
+If 
+\begin_inset Formula $\ddot{V}$
+\end_inset
+
+ is bounded, it is inferred that 
+\begin_inset Formula $\dot{V}=e^{T}Ae\rightarrow0$
+\end_inset
+
+ as 
+\begin_inset Formula $t\rightarrow\infty$
+\end_inset
+
+.
+ Thus, 
+\begin_inset Formula $e,\;\Delta\theta,\;\varphi$
+\end_inset
+
+ need to be bounded.
+ Since 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ is composed of the focal length, target location in the image plane, and
+ the velocity of the platform, it must be bounded.
+ Also, from the equation (7), 
+\begin_inset Formula 
+\[
+V(t)\leq V(0)
+\]
+
+\end_inset
+
+This implies that 
+\begin_inset Formula $e$
+\end_inset
+
+ and 
+\begin_inset Formula $\Delta\theta$
+\end_inset
+
+ are bounded because 
+\begin_inset Formula $V$
+\end_inset
+
+ is bounded.
+ In conclusion, by Barbalat's Lemma 
+\begin_inset Formula $e\rightarrow0$
+\end_inset
+
+ which means that the target location in the image plane is pushed to the
+ image center.
+\end_layout
+
+\begin_layout Section
+Simulation
+\end_layout
+
+\begin_layout Standard
+First, the behavior of the reference model was confirmed.
+ Suppose that the size of the image plane is square with 30cm for each side
+ and the target is initially located at any random point in this square.
+ 
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/u_test1.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/w_test1.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Behavior of the reference model (
+\begin_inset Formula $u^{ref}$
+\end_inset
+
+- left, 
+\begin_inset Formula $w^{ref}$
+\end_inset
+
+- right) 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+As shown in Figure 2, any other trials will show the same result which is
+ the desired behavior of the reference model, converging to the origin of
+ the image plane.
+\end_layout
+
+\begin_layout Standard
+Initial condition of the actual system is also selected randomly to a different
+ location from that of the reference model.
+ The goal is to see the actual system also converges to the origin of the
+ image plane while adapting 'z' term to its actual value.
+ In reality, 'z' is varying term depending on the location of the platform
+ and the target, but in this simulation it is set to any random value between
+ 50 to 150.
+ As mentioned above, in order to see 'z' term being adapted 
+\begin_inset Formula $v_{C}$
+\end_inset
+
+ need to hold some values which means the platform is moving.
+ For this reason, 
+\begin_inset Formula $v_{Cx}$
+\end_inset
+
+, 
+\begin_inset Formula $v_{Cy}$
+\end_inset
+
+ are set to random velocities between 0 and 20 meter per second.
+ However, 
+\begin_inset Formula $v_{Cz}$
+\end_inset
+
+ is kept to be 0 with an assumption that the platform is not flying into
+ or away from the target.
+ Figure 3 shows the block diagram of the whole system.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/block_diagram.png
+	scale 25
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Block diagram of the whole system
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For the comparison purpose, the ideal controller from the equation (5) was
+ simulated.
+ Figure 4 shows that with the ideal controller the gimbal is actually pointing
+ to the target by locating it to the center in the image plane.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/ideal_u.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/ideal_w.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/ideal_u_error.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/ideal_w_error.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/ideal_control.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Response of the ideal controller and control effort
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The system response using adaptive controller is shown in Figure 5.
+ From the result, the performance of the adaptive controller is not as good
+ as the ideal controller, but it still seems to be satisfying to fulfill
+ the objective.
+ Also, it is clear that 
+\begin_inset Formula $\theta$
+\end_inset
+
+ or 
+\begin_inset Formula $\frac{1}{z}$
+\end_inset
+
+ is initially unknown to the controller but adapting to its true value.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/adaptive_u.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/adaptive_w.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/adaptive_u_error.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/adaptive_w_error.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/adaptive_control.png
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/adaptive_theta.png
+	scale 27
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Response of the adaptive controller, control effort, and adapting variable
+ 
+\begin_inset Formula $\theta$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Conclusion and Future Work
+\end_layout
+
+\begin_layout Standard
+In conclusion, model reference adaptive control (MRAC) can be used in various
+ applications such as image-based gimbal pointing and can work quite well.
+ The future work of this project is to apply the adpative control derived
+ here into the multi-rotor tracking simulation.
+ The tracking simulation uses a pan-tilt camera which removes 
+\begin_inset Formula $\omega_{Cx}$
+\end_inset
+
+ from control input and this needs to be accounted for in the future work.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-1"
+
+\end_inset
+
+R.
+ Beard and T.
+ McLain, 
+\begin_inset Quotes eld
+\end_inset
+
+Vision-guided Navigation,
+\begin_inset Quotes erd
+\end_inset
+
+ in 
+\shape italic
+Small Unmanned Aircraft
+\shape default
+.
+ Princeton, NJ: Princeton University Press, 2012, ch.
+ 13, pp.
+ 229-234.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-2"
+
+\end_inset
+
+Z.
+ Hur and M.
+ Rez, 
+\begin_inset Quotes eld
+\end_inset
+
+Image-Based Pointing and Tracking for Inertially Stabilized Airborne Camera
+ Platform,
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\shape italic
+IEEE Trans.
+ Control Syst.
+ Technol
+\shape default
+, vol.
+ 20, no.
+ 5, pp.
+ 1146-1159, Sep.
+ 2012.
+\end_layout
+
+\end_body
+\end_document
