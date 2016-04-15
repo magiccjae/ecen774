@@ -4,18 +4,32 @@ function out=underwater_ctrl(in,P)
     v     = in(3);
     t     = in(4);
 
-    persistent thetahat
-
+    persistent thetahat;
+    persistent differentiator;
+    persistent error_d1;
     switch P.control_selection_flag,
         case 1, % PD control
             p_ref = pr;
-            e = p_ref-p;
-            thetahat = zeros(P.num_adaptive_param,1);
-            T = P.kp*e;            
+            error = p_ref-p;
+            if t==0
+                differentiator = 0;
+                error_d1 = 0;
+            else
+                differentiator = (2*P.tau-P.Ts)/(2*P.tau+P.Ts)*differentiator...
+                                 + 2/(2*P.tau+P.Ts)*(error-error_d1);
+            end
+            error_d1 = error;
+            T = P.kp*error + P.kd*differentiator;
+            thetahat = zeros(P.num_adaptive_param,1);           
             
         case 2, % backstepping
-            T = 0;
             p_ref = pr;
+            z = p - p_ref;
+            xi = -P.vc - P.k1*z;
+            xi_dot = -P.k1*(v + P.vc);
+            
+            T = P.m/P.alpha*(P.mu1*v*abs(v)/P.m + P.mu2*v*abs(v)^3/P.m + xi_dot - z- P.k2*(v - xi));            
+            
             thetahat = zeros(P.num_adaptive_param,1);
             
         case 3, % feedback linearization

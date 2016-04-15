@@ -28,18 +28,26 @@ clear; close all; clc;
     P.tau = 0.05;
 
 % select which controller to use in simulation
-    P.control_selection_flag = 5;  % 1==PD, 2==backstepping, 3==feedback linearization, 4==sliding mode, 5==adaptive
+    P.control_selection_flag = 1;  % 1==PD, 2==backstepping, 3==feedback linearization, 4==sliding mode, 5==adaptive
     P.num_adaptive_param = 1;  % one except for option 5
     
 % parameters for each controller
     switch P.control_selection_flag,
         case 1, % PD control
-            P.kp = 1;
-            P.kd = 1;
+            P.kp = 10;
+            P.kd = 10;
+            AP.vc = 0;      % vc=0 in the problem
         case 2, % backstepping
+            P.k1 = 10;      % tuning parameter
+            P.k2 = 10;      % tuning parameter
+%             P.m     = AP.m;      % kg
+%             P.mu1   = AP.mu1;    % kg/m
+%             P.mu2   = AP.mu2;    % kg s^2 / m^3
+%             P.alpha = AP.alpha;  % unitless
+%             P.vc    = AP.vc;     % m/s
             
         case 3, % feedback linearization
-
+            
         case 4, % sliding mode
             
         case 5, % adaptive
