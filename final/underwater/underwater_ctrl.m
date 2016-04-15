@@ -19,7 +19,9 @@ function out=underwater_ctrl(in,P)
                                  + 2/(2*P.tau+P.Ts)*(error-error_d1);
             end
             error_d1 = error;
+            
             T = P.kp*error + P.kd*differentiator;
+            
             thetahat = zeros(P.num_adaptive_param,1);           
             
         case 2, % backstepping
@@ -40,6 +42,20 @@ function out=underwater_ctrl(in,P)
         case 4, % sliding mode
             T = 0;
             p_ref = pr;
+            error = p - p_ref;
+            if t==0
+                differentiator = 0;
+                error_d1 = 0;
+            else
+                differentiator = (2*P.tau-P.Ts)/(2*P.tau+P.Ts)*differentiator...
+                                 + 2/(2*P.tau+P.Ts)*(error-error_d1);
+            end
+            error_d1 = error;
+            s = differentiator + P.ke*error;
+            p_x = abs(-50*v*abs(v)/1 - 15*v*abs(v)^3/1)+abs(20*(v+1));
+            
+            T = -(p_x + P.beta)*sign(s);
+            
             thetahat = zeros(P.num_adaptive_param,1);
             
         case 5, % adaptive

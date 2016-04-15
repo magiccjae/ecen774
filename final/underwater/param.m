@@ -49,7 +49,8 @@ clear; close all; clc;
         case 3, % feedback linearization
             
         case 4, % sliding mode
-            
+            P.ke = 3;
+            P.beta = 10;
         case 5, % adaptive
     
         % adaptive gains
