@@ -35,12 +35,17 @@ function out=underwater_ctrl(in,P)
             thetahat = zeros(P.num_adaptive_param,1);
             
         case 3, % feedback linearization
-            T = 0;
             p_ref = pr;
+            z1 = p - p_ref;
+            z2 = v + P.vc;
+            
+            nu = -P.k1*z1 - P.k2*z2;
+
+            T = P.m/P.alpha * (P.mu1*v*abs(v)/P.m + P.mu2*v*abs(v)^3/P.m + nu);
+            
             thetahat = zeros(P.num_adaptive_param,1);
 
         case 4, % sliding mode
-            T = 0;
             p_ref = pr;
             error = p - p_ref;
             if t==0
@@ -52,10 +57,11 @@ function out=underwater_ctrl(in,P)
             end
             error_d1 = error;
             s = differentiator + P.ke*error;
-            p_x = abs(-50*v*abs(v)/1 - 15*v*abs(v)^3/1)+abs(20*(v+1));
+            p_x = abs(-50*v*abs(v)/0.1 - 15*v*abs(v)^3/0.1)+abs(20*(v+1));
             
-            T = -(p_x + P.beta)*sign(s);
-            
+            T = -(p_x + P.beta)*sat1(s/0.1);
+%             T = -(p_x + P.beta)*sign(s);            
+
             thetahat = zeros(P.num_adaptive_param,1);
             
         case 5, % adaptive

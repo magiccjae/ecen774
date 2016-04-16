@@ -28,7 +28,7 @@ clear; close all; clc;
     P.tau = 0.05;
 
 % select which controller to use in simulation
-    P.control_selection_flag = 1;  % 1==PD, 2==backstepping, 3==feedback linearization, 4==sliding mode, 5==adaptive
+    P.control_selection_flag = 2;  % 1==PD, 2==backstepping, 3==feedback linearization, 4==sliding mode, 5==adaptive
     P.num_adaptive_param = 1;  % one except for option 5
     
 % parameters for each controller
@@ -47,10 +47,11 @@ clear; close all; clc;
 %             P.vc    = AP.vc;     % m/s
             
         case 3, % feedback linearization
-            
+            P.k1 = 10;
+            P.k2 = 10;
         case 4, % sliding mode
-            P.ke = 3;
-            P.beta = 10;
+            P.ke = 5;
+            P.beta = 1;
         case 5, % adaptive
     
         % adaptive gains
