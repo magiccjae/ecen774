@@ -28,7 +28,7 @@ clear; close all; clc;
     P.tau = 0.05;
 
 % select which controller to use in simulation
-    P.control_selection_flag = 1;  % 1==PD, 2==backstepping, 3==feedback linearization, 4==sliding mode, 5==adaptive
+    P.control_selection_flag = 5;  % 1==PD, 2==backstepping, 3==feedback linearization, 4==sliding mode, 5==adaptive
     P.num_adaptive_param = 1;  % one except for option 5
     
 % parameters for each controller
@@ -52,10 +52,19 @@ clear; close all; clc;
             P.ke = 3;
             P.beta = 10;
         case 5, % adaptive
-    
-        % adaptive gains
-            P.Gam = diag([]);
-            P.num_adaptive_param = size(P.Gam,1);
+            % baseline controller
+            P.A = [0 1 0; 0 2*P.mu1*P.vc/P.m+4*P.mu2*P.vc^3/P.m 0; 1 0 0];
+            P.B = [0; P.alpha/P.m; 0];
+            P.B_ref = [0; 0; -1];
+            lqr_Q = 1000000*eye(3);
+            lqr_R = eye(1);
+            
+            [K,S,E] = lqr(P.A, P.B, lqr_Q, lqr_R);
+            P.K = K;
+            
+            % adaptive gains
+%             P.Gam = diag([]);
+%             P.num_adaptive_param = size(P.Gam,1);
 
     end
 
