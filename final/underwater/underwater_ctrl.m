@@ -7,6 +7,8 @@ function out=underwater_ctrl(in,P)
     persistent thetahat;
     persistent differentiator;
     persistent error_d1;
+    persistent integrator;
+    
     switch P.control_selection_flag,
         case 1, % PD control
             p_ref = pr;
@@ -65,7 +67,22 @@ function out=underwater_ctrl(in,P)
             thetahat = zeros(P.num_adaptive_param,1);
             
         case 5, % adaptive
-            T = 0;
+            % baseline controller
+            p_ref = pr;
+            error = p - p_ref;            
+            if t==0
+                integrator = 0;
+                error_d1 = 0;
+            else
+                integrator = integrator + (P.Ts/2)*(error+error_d1);
+            end
+            error_d1 = error;
+            x = [p; v; integrator];
+            u_bl = -P.K*x;
+
+            T = u_bl;
+            thetahat = zeros(P.num_adaptive_param,1);
+            
     end
     out = [T; p_ref; thetahat];
 end
