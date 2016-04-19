@@ -10,7 +10,7 @@ persistent error_d1;
 persistent integrator;
 persistent xref
 
-switch P.control_selection_flag,
+  switch P.control_selection_flag,
     case 1, % PD control
         p_ref = pr;
         error = p_ref-p;
@@ -60,10 +60,11 @@ switch P.control_selection_flag,
         end
         error_d1 = error;
         s = differentiator + P.ke*error;
-        p_x = abs(-50*v*abs(v)/0.1 - 15*v*abs(v)^3/0.1)+abs(20*(v+1));
+        p_x = abs(-P.mu1_max*v*abs(v)/P.alpha_min - P.mu2_max*v*abs(v)^3/P.alpha_min)...
+                +abs(P.m_max/P.alpha_min*P.ke*(v+1));
         
-        T = -(p_x + P.beta)*sat1(s/0.1);
-        %             T = -(p_x + P.beta)*sign(s);
+        T = -(p_x + P.beta)*sat1(s/P.epsilon);
+%         T = -(p_x + P.beta)*sign(s);
         
         thetahat = zeros(P.num_adaptive_param,1);
         
@@ -80,7 +81,6 @@ switch P.control_selection_flag,
         error_d1 = error;
         x = [p; v; integrator];
         u_bl = -P.K*x;
-        
         
         % build regressor vector
         Phi = [...
@@ -107,13 +107,11 @@ switch P.control_selection_flag,
             thetahat = sat( thetahat + P.Ts/N*Proj(thetahat,P.Gam*Phi*e'*P.P_ref_obsv*P.B,P), P.proj_limit);
             u_ad = -thetahat'*Phi;
         end
-%         u_ad = 0;
+        u_ad = 0;
+       
+        T = u_bl + u_ad;
         
-        u = u_bl + u_ad;
-        
-        T = u;
-        
-end
+  end
 out = [T; p_ref; thetahat];
 end
 

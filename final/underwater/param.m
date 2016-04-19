@@ -15,7 +15,7 @@ AP.v0 = 0; % m/s
 
 % parameters known to the controller
 % size of uncertainty in parameters
-S = 0.0;  % up to 100*S % change in parameters
+S = 0.5;  % up to 100*S % change in parameters
 P.m     = AP.m*(1+2*S*rand-S);      % kg
 P.mu1   = AP.mu1*(1+2*S*rand-S);    % kg/m
 P.mu2   = AP.mu2*(1+2*S*rand-S);    % kg s^2 / m^3
@@ -39,19 +39,18 @@ switch P.control_selection_flag,
         AP.vc = 0;      % vc=0 in the problem
     case 2, % backstepping
         P.k1 = 10;      % tuning parameter
-        P.k2 = 10;      % tuning parameter
-        %             P.m     = AP.m;      % kg
-        %             P.mu1   = AP.mu1;    % kg/m
-        %             P.mu2   = AP.mu2;    % kg s^2 / m^3
-        %             P.alpha = AP.alpha;  % unitless
-        %             P.vc    = AP.vc;     % m/s
-        
+        P.k2 = 10;      % tuning parameter        
     case 3, % feedback linearization
         P.k1 = 10;
         P.k2 = 10;
     case 4, % sliding mode
         P.ke = 5;
         P.beta = 1;
+        P.epsilon = 1;
+        P.mu1_max = 50;
+        P.mu2_max = 30;
+        P.alpha_min = 0.1;
+        P.m_max = 20;
     case 5, % adaptive
         % baseline controller
         P.A = [0 1 0; 0 2*P.mu1*P.vc/P.m+4*P.mu2*P.vc^3/P.m 0; 1 0 0];
@@ -70,7 +69,7 @@ switch P.control_selection_flag,
         P.K = K;
                 
         % adaptive gains
-        P.Gam = 10*diag([...
+        P.Gam = 100*diag([...
             1;...  % baseline controller
             1;...  % constant
             1;...  % p
